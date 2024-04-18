@@ -25,7 +25,7 @@ export function SiteHeader() {
                   className: 'text-slate-700 dark:text-slate-400',
                 })}
               >
-                <Icons.Link2 className="h-5 w-5 mr-2" />
+                <Icons.Link2 className="mr-2 size-5" />
                 <span className="">Demux Guide</span>
               </div>
             </Link>
@@ -37,7 +37,7 @@ export function SiteHeader() {
                   className: 'text-slate-700 dark:text-slate-400',
                 })}
               >
-                <Icons.Link2 className="h-5 w-5 mr-2" />
+                <Icons.Link2 className="mr-2 h-5 w-5" />
                 <span className="">SampleSheet Generator</span>
               </div>
             </Link>

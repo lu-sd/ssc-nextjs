@@ -4,7 +4,7 @@ import {
   LucideProps,
   Moon,
   SunMedium,
-  type Icon as LucideIcon,
+  type LucideIcon
 } from 'lucide-react'
 
 import sgLogo from '../assets/sg-logo.svg'
