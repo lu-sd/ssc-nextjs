@@ -1,80 +1,127 @@
-type CsvSection = { [key: string]: string };
-type ParsedCsv = { [sectionName: string]: CsvSection };
+// type CsvSection = { [key: string]: string }
+type ParsedCsv = Record<string, Record<string, string>> // { [sectionName: string]: CsvSection }
 
-export function parseCsv(csvString: string): ParsedCsv {
-  const sections: ParsedCsv = {};
-  const lines = csvString.split("\n");
-  let currentSection = "";
+export function parseCsv(csvString: string): [ParsedCsv, [string, string][]] {
+  const sections: ParsedCsv = {}
+  const lines = csvString.split('\n')
+  const dataSection: [string, string][] = []
+  let currentSection = ''
 
-  lines.forEach((line) => {
-    const trimmedLine = line.trim();
-    if (trimmedLine.startsWith("[")) {
-      currentSection = trimmedLine.split(",")[0];
-      sections[currentSection] = {};
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmedLine = line.trim()
+
+    if (trimmedLine.startsWith('[')) {
+      currentSection = trimmedLine.split(',')[0]
+      if (currentSection === '[Data]') continue
+      sections[currentSection] = {}
     } else {
-      const [key, value] = trimmedLine.split(",").map((item) => item.trim());
-      if (key && value && currentSection) {
-        sections[currentSection][key] = value;
+      const splitLine = trimmedLine.split(',').map((item) => item.trim())
+
+      if (currentSection !== '[Data]') {
+        const [key, value] = splitLine
+        if (key && value && currentSection) {
+          sections[currentSection][key] = value
+        }
+      } else {
+        if (splitLine[0] === 'Sample_ID' || splitLine[0] === '') continue
+        const sampleID = splitLine[0]
+        const index1Sequence = splitLine[2]
+        const index2Sequence = splitLine[4]
+        const lane = splitLine[5]
+        dataSection.push([
+          `${sampleID}-lane${lane}`,
+          `${index1Sequence}-${index2Sequence}`,
+        ])
       }
     }
-  });
+  }
 
-  return sections;
+  return [sections, dataSection]
 }
 
-type ValidationResult = {
-  isValid: boolean;
-  errors: { [section: string]: string[] };
-};
+export type ValidationResult = {
+  valid: boolean
+  message: { section: string; details: string[] }[]
+}
 
-function validateCsv(parsedCsv: ParsedCsv): ValidationResult {
-  const validationResult: ValidationResult = { isValid: true, errors: {} };
-
-  // Helper function to add errors
-  function addError(section: string, message: string) {
-    validationResult.isValid = false;
-    if (!validationResult.errors[section]) {
-      validationResult.errors[section] = [];
+export function validateCsv(
+  parsedCsv: ParsedCsv,
+  dataSection: [string, string][]
+): ValidationResult {
+  const validationResult: ValidationResult = {
+    valid: true,
+    message: [
+      { section: '[Header]', details: [] },
+      { section: '[Settings]', details: [] },
+      { section: '[Data]', details: [] },
+    ],
+  }
+  for (const key of Object.keys(parsedCsv)) {
+    switch (key) {
+      case '[Header]':
+        if (!parsedCsv[key]['Date']) {
+          validationResult.valid = false
+          validationResult.message[0].details.push('Date is required.')
+        }
+        break
+      case '[Settings]':
+        if (!parsedCsv[key]['Read1']) {
+          validationResult.valid = false
+          validationResult.message[1].details.push('Read1 is required.')
+        }
+        break
     }
-    validationResult.errors[section].push(message);
   }
 
-  // Check required data in Header
-  if (!parsedCsv["[Header]"] || !parsedCsv["[Header]"]["Date"]) {
-    addError("Header", "Date in Header is required.");
+  if (dataSection.length === 0) {
+    validationResult.valid = false
+    validationResult.message[2].details.push('Data section is empty.')
+  } else {
+    const sampleID_count = new Map<string, number>()
+    for (const [sampleID, _] of dataSection) {
+      sampleID_count.set(sampleID, (sampleID_count.get(sampleID) || 0) + 1)
+    }
+
+    for (const [sampleID, count] of sampleID_count.entries()) {
+      if (count > 1) {
+        validationResult.valid = false
+        validationResult.message[2].details.push(
+          `Duplicate sampleID found: ${sampleID} is used ${count} times.`
+        )
+      }
+    }
+    const indexSeq = new Map<string, number>()
+    const indexLength = new Map<string, number>()
+    for (const [sampleID, seq] of dataSection) {
+      const [_, lane] = sampleID.split('-')
+      indexSeq.set(`${lane}-${seq}`, (indexSeq.get(`${lane}-${seq}`) || 0) + 1)
+      indexLength.set(sampleID, seq.length - 1)
+    }
+
+    for (const [index, count] of indexSeq.entries()) {
+      if (count > 1) {
+        validationResult.valid = false
+        validationResult.message[2].details.push(
+          `Duplicate index found: ${index} is used ${count} times.`
+        )
+      }
+    }
+    const uniqueLength = [...new Set([...indexLength.values()])]
+    if (uniqueLength.length > 1) {
+      const example1 = [...indexLength.entries()].find(
+        ([_, value]) => value === uniqueLength[0]
+      )!
+      const example2 = [...indexLength.entries()].find(
+        ([_, value]) => value === uniqueLength[1]
+      )!
+
+      validationResult.valid = false
+      validationResult.message[2].details.push(
+        `Index length is not consistent: ${example1[0]} has length ${uniqueLength[0]} and ${example2[0]} has length ${uniqueLength[1]}.`
+      )
+    }
   }
 
-  // Check Read1 in Settings
-  if (!parsedCsv["[Settings]"] || !parsedCsv["[Settings]"]["Read1"]) {
-    addError("Settings", "Read1 in Settings is required.");
-  }
-
-  // Assuming each 'Data' entry is properly formatted
-  // if (parsedCsv["Settings"]) {
-  //   const settings = parsedCsv["Settings"];
-  //   const index1Length = parseInt(settings["Index1"] || "0");
-  //   const index2Length = parseInt(settings["Index2"] || "0");
-  //   const sumOfIndexLengths = index1Length + index2Length;
-
-  //   Object.entries(parsedCsv["Data"] || {}).forEach(([key, value], index) => {
-  //     // Assuming data is structured with index sequences immediately following their IDs
-  //     if (
-  //       (key.includes("Index1_Sequence") || key.includes("Index2_Sequence")) &&
-  //       value
-  //     ) {
-  //       if (value.length !== sumOfIndexLengths) {
-  //         addError(
-  //           "Data",
-  //           `Sum of Index lengths does not match the sequence lengths for entry ${
-  //             Math.floor(index / 6) + 1
-  //           }.`
-  //         );
-  //       }
-  //     }
-  //   });
-  // } else {
-  //   addError("Settings", "Index1 and Index2 lengths are required in Settings.");
-  // }
-
-  return validationResult;
+  return validationResult
 }
