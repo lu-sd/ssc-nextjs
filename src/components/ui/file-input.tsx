@@ -51,8 +51,8 @@ const FileInput = forwardRef<HTMLInputElement, InputProps>(
         reader.onload = (event: ProgressEvent<FileReader>) => {
           const text = event.target?.result as string
           const [parsedCsv, dataSection] = parseCsv(text)
-          console.log('🚀 ~ header:', parsedCsv)
-          console.log('🚀 ~ data:', dataSection)
+          // console.log('🚀 ~ header:', parsedCsv)
+          // console.log('🚀 ~ data:', dataSection)
           const isValid = validateCsv(parsedCsv, dataSection)
           info.current = isValid
           // console.log('isvalid', isValid)

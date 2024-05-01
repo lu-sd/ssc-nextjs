@@ -30,8 +30,8 @@ export function parseCsv(csvString: string): [ParsedCsv, [string, string][]] {
         const index2Sequence = splitLine[4]
         const lane = splitLine[5]
         dataSection.push([
-          `${sampleID}-lane${lane}`,
-          `${index1Sequence}-${index2Sequence}`,
+          `${sampleID}@lane${lane}`, // convert to sampleID@lane as key
+          `${index1Sequence}:${index2Sequence}`,
         ])
       }
     }
@@ -57,6 +57,7 @@ export function validateCsv(
       { section: '[Data]', details: [] },
     ],
   }
+
   for (const key of Object.keys(parsedCsv)) {
     switch (key) {
       case '[Header]':
@@ -78,7 +79,9 @@ export function validateCsv(
     validationResult.valid = false
     validationResult.message[2].details.push('Data section is empty.')
   } else {
+    // check for duplicate sampleID (sampleID@lane should be unique)
     const sampleID_count = new Map<string, number>()
+
     for (const [sampleID, _] of dataSection) {
       sampleID_count.set(sampleID, (sampleID_count.get(sampleID) || 0) + 1)
     }
@@ -91,10 +94,12 @@ export function validateCsv(
         )
       }
     }
+    // check for duplicate index (index1:index2 should be unique for each lane)
+    // check for consistent index length (index1:index2 should have the same length for all samples in the data section)
     const indexSeq = new Map<string, number>()
     const indexLength = new Map<string, number>()
     for (const [sampleID, seq] of dataSection) {
-      const [_, lane] = sampleID.split('-')
+      const [_, lane] = sampleID.split('@')
       indexSeq.set(`${lane}-${seq}`, (indexSeq.get(`${lane}-${seq}`) || 0) + 1)
       indexLength.set(sampleID, seq.length - 1)
     }
@@ -107,6 +112,7 @@ export function validateCsv(
         )
       }
     }
+
     const uniqueLength = [...new Set([...indexLength.values()])]
     if (uniqueLength.length > 1) {
       const example1 = [...indexLength.entries()].find(
