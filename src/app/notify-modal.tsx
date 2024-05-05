@@ -53,9 +53,12 @@ export const NotifModal = ({ display, setDisplay, info }: Props) => {
               {info.message[index].details.length > 0 ? (
                 <>
                   {info.message[index].details.map((detail, index) => (
-                    <p key={index} className="text-gray-500 dark:text-gray-400">
-                      {detail}
-                    </p>
+                    <div key={index}>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        {detail}
+                      </p>
+                      <br />
+                    </div>
                   ))}
                 </>
               ) : (
