@@ -14,14 +14,16 @@ const page: FC = () => {
           Sample Sheet Checker
         </h1>
         <p className="mb-4 max-w-[700px] text-lg text-slate-700 dark:text-slate-400 sm:text-xl">
-        The following sections will be checked:
+        To ensure accurate demultiplexing of your data, please adhere to the following criteria in the data section:
         </p>
-        <h2 className="mb-1 text-xl font-bold">[Header] section</h2>
-        <p className="mb-2">General information about the run.</p>
-        <h2 className="mb-1 text-xl font-bold ">[Setting] section</h2>
-        <p className="mb-2">Read length and index length.</p>
-        <h2 className="mb-1 text-xl font-bold ">[Data] section</h2>
-        <p className="mb-2">Sample ID and index sequence</p>
+        <h2 className="mb-1 text-xl font-bold">Lane Configuration:</h2>
+        <p className="mb-2">Ensure that the lane numbers range from 1 to 4.</p>
+        <h2 className="mb-1 text-xl font-bold">Index Sequence Composition:</h2>
+        <p className="mb-2">Index sequences must exclusively contain the nucleotides A, T, C, and G.</p>
+        <h2 className="mb-1 text-xl font-bold ">Uniqueness of Index Pairs:</h2>
+        <p className="mb-2"> Ensure each index1:index2 pair is unique per lane.</p>
+        <h2 className="mb-1 text-xl font-bold ">Consistency of Index Length:</h2>
+        <p className="mb-2"> Index pairs within the same lane must be of consistent length.</p>
       </div>
 
       <div className="flex max-w-md gap-4">
